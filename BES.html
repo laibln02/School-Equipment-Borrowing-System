@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UPNHS Equipment Borrowing System</title>
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #C5D2F4;
+    color: #333;
+}
+
+header {
+    background: #536FC4;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+header h2 { margin: 0; }
+
+.container { padding: 22px; }
+
+.section {
+    background: #F0F3FF;
+    padding: 20px;
+    margin-bottom: 22px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px #B9C7E8;
+    overflow-x: auto;
+}
+
+.section h2 { margin: 0 0 18px; }
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.card {
+    background: #F0F3FF;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px #B9C7E8;
+}
+
+.card h3 { font-size: 15px; margin: 0 0 12px; }
+.card p { font-size: 24px; font-weight: bold; margin: 0; }
+
+input, select {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #B9C7E8;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover { opacity: 0.88; }
+.primary { background: #394F98; color: white; }
+.green { background: #648B78; color: white; }
+.red { background: #c0392b; color: white; }
+.gray { background: #B6A27A; color: white; }
+
+.tools {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+form { display: grid; gap: 12px; }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 650px;
+}
+
+th, td {
+    padding: 13px;
+    border: 1px solid #B9C7E8;
+    text-align: left;
+    line-height: 1.6;
+    vertical-align: middle;
+}
+
+th { background: #E0E7FB; white-space: nowrap; }
+td button { margin: 3px 3px 3px 0; }
+.hidden { display: none !important; }
+
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 380px;
+    background: #F0F3FF;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px #B9C7E8;
+}
+
+.login-box h2 {
+    text-align: center;
+    margin: 0 0 22px;
+}
+
+.login-box button { width: 100%; }
+.status { font-weight: bold; }
+
+@media (max-width: 650px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .container { padding: 12px; }
+    .section { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<div id="loginPage" class="login-page">
+    <div class="login-box">
+        <h2>UPNHS Equipment System</h2>
+        <form id="loginForm">
+            <input id="username" placeholder="Username" autocomplete="username">
+            <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+            <button class="primary" type="submit">Sign In</button>
+        </form>
+        <p style="font-size:13px;color:#666;line-height:1.6">
+            First-time users can create an account using their preferred username and password.
+        </p>
+    </div>
+</div>
+
+<div id="adminPage" class="hidden">
+    <header>
+        <h2>UPNHS Equipment System</h2>
+        <button class="gray" onclick="logout()">Logout</button>
+    </header>
+
+    <div class="container">
+        <div class="cards">
+            <div class="card"><h3>Total Equipment Types</h3><p id="totalEquipment">0</p></div>
+            <div class="card"><h3>Available Quantity</h3><p id="availableQuantity">0</p></div>
+            <div class="card"><h3>Pending Requests</h3><p id="pendingCount">0</p></div>
+            <div class="card"><h3>Borrowed</h3><p id="borrowedCount">0</p></div>
+            <div class="card"><h3>Overdue</h3><p id="overdueCount">0</p></div>
+        </div>
+
+        <div class="section">
+            <h2>Equipment Inventory</h2>
+            <div class="tools">
+                <input id="searchEquipment" placeholder="Search equipment..." oninput="renderInventory()">
+                <select id="filterStatus" onchange="renderInventory()">
+                    <option value="all">All Status</option>
+                    <option value="available">Available</option>
+                    <option value="unavailable">Unavailable</option>
+                </select>
+                <select id="sortQuantity" onchange="renderInventory()">
+                    <option value="default">Default Order</option>
+                    <option value="high">Most Available</option>
+                    <option value="low">Least Available</option>
+                </select>
+                <button class="green" onclick="addEquipment()">Add Equipment</button>
+                <button class="primary" onclick="exportJSON()">Export JSON</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr><th>Equipment</th><th>Quantity</th><th>Condition</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="inventoryTable"></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Borrowing Requests</h2>
+            <table>
+                <thead>
+                    <tr><th>Borrower</th><th>Grade / Department</th><th>Equipment</th><th>Purpose</th><th>Request Date</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="requestsTable"></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Borrowing Records</h2>
+            <table>
+                <thead>
+                    <tr><th>Borrower</th><th>Equipment</th><th>Borrowed Date</th><th>Return Deadline</th><th>Actual Return</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody id="recordsTable"></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>System Summary</h2>
+            <p>Returned: <b id="returnedCount">0</b></p>
+            <p>Damaged: <b id="damagedCount">0</b></p>
+            <p>Lost: <b id="lostCount">0</b></p>
+        </div>
+    </div>
+</div>
+
+<div id="userPage" class="hidden">
+    <header>
+        <h2>UPNHS Equipment System</h2>
+        <div>Hi, <b id="userGreeting"></b> <button class="gray" onclick="logout()">Logout</button></div>
+    </header>
+
+    <div class="container">
+        <div class="section">
+            <h2>Available Equipment</h2>
+            <table>
+                <thead><tr><th>Equipment</th><th>Quantity</th><th>Condition</th></tr></thead>
+                <tbody id="userInventoryTable"></tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Borrow Equipment</h2>
+            <form id="borrowForm">
+                <div class="form-grid">
+                    <input id="borrowerName" placeholder="Full Name" readonly>
+                    <input id="borrowerSection" placeholder="Grade & Section / Department">
+                </div>
+                <select id="equipmentChoice"><option value="">Select Equipment</option></select>
+                <input id="borrowPurpose" placeholder="Purpose of borrowing">
+                <button class="primary" type="submit">Submit Request</button>
+            </form>
+        </div>
+
+        <div class="section">
+            <h2>My Requests</h2>
+            <table>
+                <thead>
+                    <tr><th>Equipment / Purpose</th><th>Request Date</th><th>Return Deadline</th><th>Actual Return</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody id="myRequestsTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+const defaultEquipment = [
+    {name:"Laptop", quantity:5, condition:"Good"},
+    {name:"Projector", quantity:5, condition:"Good"},
+    {name:"Digital Camera", quantity:3, condition:"Good"},
+    {name:"Beaker", quantity:10, condition:"Good"},
+    {name:"Test Tube", quantity:20, condition:"Good"},
+    {name:"Graduated Cylinder", quantity:5, condition:"Good"},
+    {name:"Erlenmeyer Flask", quantity:5, condition:"Good"},
+    {name:"Bunsen Burner", quantity:3, condition:"Good"},
+    {name:"Speaker", quantity:8, condition:"Good"},
+    {name:"Extension Cord", quantity:15, condition:"Good"},
+    {name:"Remote Control", quantity:12, condition:"Needs Repair"},
+    {name:"Library Book", quantity:20, condition:"Good"}
+];
+
+let equipment = JSON.parse(localStorage.getItem("equipmentData")) || defaultEquipment;
+let requests = JSON.parse(localStorage.getItem("requestData")) || [];
+let accounts = JSON.parse(localStorage.getItem("userAccounts")) || {};
+let currentUser = "";
+
+function saveData() {
+    localStorage.setItem("equipmentData", JSON.stringify(equipment));
+    localStorage.setItem("requestData", JSON.stringify(requests));
+    localStorage.setItem("userAccounts", JSON.stringify(accounts));
+}
+
+function today() {
+    const date = new Date();
+    return date.getFullYear() + "-" +
+        String(date.getMonth() + 1).padStart(2, "0") + "-" +
+        String(date.getDate()).padStart(2, "0");
+}
+
+function addDays(dateString, days) {
+    const date = new Date(dateString + "T12:00:00");
+    date.setDate(date.getDate() + days);
+    return date.getFullYear() + "-" +
+        String(date.getMonth() + 1).padStart(2, "0") + "-" +
+        String(date.getDate()).padStart(2, "0");
+}
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, function(char) {
+        return {
+            "&":"&amp;", "<":"&lt;", ">":"&gt;",
+            '"':"&quot;", "'":"&#39;"
+        }[char];
+    });
+}
+
+document.getElementById("loginForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    login();
+});
+
+function login() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value;
+
+    if (!username || !password) {
+        alert("Please enter your username and password.");
+        return;
+    }
+
+    if (username.toLowerCase() === "admin") {
+        if (password !== "admin123") {
+            alert("Incorrect admin password.");
+            return;
+        }
+
+        currentUser = "admin";
+        document.getElementById("loginPage").classList.add("hidden");
+        document.getElementById("adminPage").classList.remove("hidden");
+        checkOverdue();
+        renderAdmin();
+        alert("Admin sign-in successful.");
+        return;
+    }
+
+    const key = username.toLowerCase();
+
+    if (accounts[key]) {
+        if (accounts[key] !== password) {
+            alert("Incorrect password.");
+            return;
+        }
+    } else {
+        if (!confirm("Create a new account using this username and password?")) return;
+        accounts[key] = password;
+        saveData();
+        alert("Account created successfully.");
+    }
+
+    currentUser = username;
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("userPage").classList.remove("hidden");
+    document.getElementById("userGreeting").textContent = username;
+    document.getElementById("borrowerName").value = username;
+
+    checkOverdue();
+    renderUser();
+    notifyUser();
+}
+
+function logout() {
+    if (confirm("Are you sure you want to log out?")) {
+        currentUser = "";
+        location.reload();
+    }
+}
+
+function checkOverdue() {
+    let changed = false;
+
+    requests.forEach(function(request) {
+        if (request.status === "Borrowed" && request.returnDate < today()) {
+            request.status = "Overdue";
+            changed = true;
+        }
+    });
+
+    if (changed) saveData();
+}
+
+function addEquipment() {
+    const name = prompt("Enter the equipment name:");
+
+    if (name === null || !name.trim()) {
+        alert("Equipment name is required.");
+        return;
+    }
+
+    if (equipment.some(item => item.name.toLowerCase() === name.trim().toLowerCase())) {
+        alert("This equipment already exists.");
+        return;
+    }
+
+    const quantity = Number(prompt("Enter the quantity:"));
+
+    if (!Number.isInteger(quantity) || quantity < 0) {
+        alert("Enter a valid quantity.");
+        return;
+    }
+
+    equipment.push({name:name.trim(), quantity:quantity, condition:"Good"});
+    saveData();
+    renderAdmin();
+    alert("Equipment added successfully.");
+}
+
+function editEquipment(index) {
+    const item = equipment[index];
+    if (!item) return;
+
+    const newName = prompt("Edit equipment name:", item.name);
+    if (newName === null || !newName.trim()) return;
+
+    const newQuantity = Number(prompt("Edit quantity:", item.quantity));
+
+    if (!Number.isInteger(newQuantity) || newQuantity < 0) {
+        alert("Enter a valid quantity.");
+        return;
+    }
+
+    const newCondition = prompt("Enter condition: Good or Needs Repair", item.condition);
+    if (newCondition === null) return;
+
+    const condition = newCondition.trim().toLowerCase();
+
+    if (!["good", "needs repair"].includes(condition)) {
+        alert("Enter Good or Needs Repair.");
+        return;
+    }
+
+    if (!confirm("Save the equipment changes?")) return;
+
+    item.name = newName.trim();
+    item.quantity = newQuantity;
+    item.condition = condition === "good" ? "Good" : "Needs Repair";
+
+    saveData();
+    renderAdmin();
+    alert("Equipment updated successfully.");
+}
+
+function deleteEquipment(index) {
+    const item = equipment[index];
+    if (!item) return;
+
+    const hasActiveRequest = requests.some(request =>
+        request.equipment === item.name &&
+        ["Pending", "Borrowed", "Overdue", "Return Pending Confirmation"].includes(request.status)
+    );
+
+    if (hasActiveRequest) {
+        alert("This equipment has an active request or borrowing record. It cannot be deleted yet.");
+        return;
+    }
+
+    if (!confirm("Delete " + item.name + " from the inventory?")) return;
+
+    equipment.splice(index, 1);
+    saveData();
+    renderAdmin();
+    alert("Equipment deleted successfully.");
+}
+
+function renderInventory() {
+    const table = document.getElementById("inventoryTable");
+    const search = document.getElementById("searchEquipment").value.toLowerCase();
+    const filter = document.getElementById("filterStatus").value;
+    const sort = document.getElementById("sortQuantity").value;
+
+    let list = equipment.filter(item => {
+        const matchesName = item.name.toLowerCase().includes(search);
+        const matchesStatus = filter === "all" ||
+            (filter === "available" && item.quantity > 0) ||
+            (filter === "unavailable" && item.quantity === 0);
+
+        return matchesName && matchesStatus;
+    });
+
+    if (sort === "high") list.sort((a, b) => b.quantity - a.quantity);
+    if (sort === "low") list.sort((a, b) => a.quantity - b.quantity);
+
+    table.innerHTML = "";
+
+    list.forEach(function(item) {
+        const index = equipment.indexOf(item);
+        const status = item.quantity > 0 ? "Available" : "Unavailable";
+
+        table.innerHTML += `
+            <tr>
+                <td>${escapeHTML(item.name)}</td>
+                <td>${item.quantity}</td>
+                <td>${escapeHTML(item.condition)}</td>
+                <td>${status}</td>
+                <td>
+                    <button class="primary" onclick="editEquipment(${index})">Edit</button>
+                    <button class="red" onclick="deleteEquipment(${index})">Delete</button>
+                </td>
+            </tr>`;
+    });
+}
+
+function renderRequests() {
+    const table = document.getElementById("requestsTable");
+    table.innerHTML = "";
+
+    requests.forEach(function(request, index) {
+        if (request.status !== "Pending") return;
+
+        table.innerHTML += `
+            <tr>
+                <td>${escapeHTML(request.name)}</td>
+                <td>${escapeHTML(request.section)}</td>
+                <td>${escapeHTML(request.equipment)}</td>
+                <td>${escapeHTML(request.purpose)}</td>
+                <td>${escapeHTML(request.requestDate)}</td>
+                <td>
+                    <button class="green" onclick="approveRequest(${index})">Approve</button>
+                    <button class="red" onclick="rejectRequest(${index})">Reject</button>
+                </td>
+            </tr>`;
+    });
+}
+
+function approveRequest(index) {
+    const request = requests[index];
+
+    if (!request) {
+        alert("Borrowing request not found.");
+        return;
+    }
+
+    const item = equipment.find(e => e.name === request.equipment);
+
+    if (!item || item.quantity <= 0) {
+        alert("This equipment is no longer available.");
+        return;
+    }
+
+    const deadline = addDays(today(), 3);
+    const message =
+        "APPROVE BORROWING REQUEST?\n\n" +
+        "Borrower: " + request.name + "\n" +
+        "Grade / Department: " + request.section + "\n" +
+        "Equipment: " + request.equipment + "\n" +
+        "Purpose: " + request.purpose + "\n" +
+        "Borrowed Date: " + today() + "\n" +
+        "Return Deadline: " + deadline + "\n\n" +
+        "The borrowing period is limited to 3 days.";
+
+    if (!confirm(message)) return;
+
+    item.quantity--;
+    request.status = "Borrowed";
+    request.borrowDate = today();
+    request.returnDate = deadline;
+    request.acceptedNoticeShown = false;
+
+    saveData();
+    renderAdmin();
+
+    alert(
+        "REQUEST APPROVED!\n\n" +
+        "Borrower: " + request.name + "\n" +
+        "Equipment: " + request.equipment + "\n" +
+        "Borrowed Date: " + request.borrowDate + "\n" +
+        "Return Deadline: " + request.returnDate
+    );
+}
+
+function rejectRequest(index) {
+    const request = requests[index];
+    if (!request) return;
+
+    if (!confirm("Reject the borrowing request from " + request.name + "?")) return;
+
+    request.status = "Rejected";
+    request.rejectionNoticeShown = false;
+
+    saveData();
+    renderAdmin();
+    alert("Borrowing request rejected.");
+}
+
+function renderRecords() {
+    const table = document.getElementById("recordsTable");
+    table.innerHTML = "";
+
+    requests.forEach(function(request, index) {
+        if (!["Borrowed", "Overdue", "Return Pending Confirmation", "Returned", "Damaged", "Lost"].includes(request.status)) {
+            return;
+        }
+
+        let action = "-";
+
+        if (["Borrowed", "Overdue", "Return Pending Confirmation"].includes(request.status)) {
+            action = `<button class="green" onclick="confirmReturn(${index})">Confirm Return</button>`;
+        }
+
+        table.innerHTML += `
+            <tr>
+                <td>${escapeHTML(request.name)}</td>
+                <td>${escapeHTML(request.equipment)}</td>
+                <td>${escapeHTML(request.borrowDate || "-")}</td>
+                <td>${escapeHTML(request.returnDate || "-")}</td>
+                <td>${escapeHTML(request.actualReturnDate || "-")}</td>
+                <td>${escapeHTML(request.status)}</td>
+                <td>${action}</td>
+            </tr>`;
+    });
+}
+
+function confirmReturn(index) {
+    const request = requests[index];
+    if (!request) return;
+
+    if (request.status !== "Return Pending Confirmation") {
+        if (!confirm("Confirm that the equipment has physically been returned to the school?")) {
+            return;
+        }
+    }
+
+    const condition = prompt("Inspect the equipment. Enter Good, Damaged, or Lost:");
+    if (condition === null) return;
+
+    const answer = condition.trim().toLowerCase();
+
+    if (!["good", "damaged", "lost"].includes(answer)) {
+        alert("Please enter Good, Damaged, or Lost.");
+        return;
+    }
+
+    if (!confirm("Confirm the return condition: " + answer.toUpperCase() + "?")) return;
+
+    request.actualReturnDate = today();
+    request.returnNoticeShown = false;
+
+    if (answer === "good") {
+        request.status = "Returned";
+        const item = equipment.find(e => e.name === request.equipment);
+        if (item) item.quantity++;
+    } else if (answer === "damaged") {
+        request.status = "Damaged";
+    } else {
+        request.status = "Lost";
+    }
+
+    saveData();
+    renderAdmin();
+    alert("Return recorded successfully.\nFinal Status: " + request.status);
+}
+
+function renderAdmin() {
+    renderInventory();
+    renderRequests();
+    renderRecords();
+    renderSummary();
+}
+
+function renderSummary() {
+    document.getElementById("totalEquipment").textContent = equipment.length;
+    document.getElementById("availableQuantity").textContent =
+        equipment.reduce((sum, item) => sum + item.quantity, 0);
+    document.getElementById("pendingCount").textContent =
+        requests.filter(r => r.status === "Pending").length;
+    document.getElementById("borrowedCount").textContent =
+        requests.filter(r => r.status === "Borrowed").length;
+    document.getElementById("overdueCount").textContent =
+        requests.filter(r => r.status === "Overdue").length;
+    document.getElementById("returnedCount").textContent =
+        requests.filter(r => r.status === "Returned").length;
+    document.getElementById("damagedCount").textContent =
+        requests.filter(r => r.status === "Damaged").length;
+    document.getElementById("lostCount").textContent =
+        requests.filter(r => r.status === "Lost").length;
+}
+
+function renderUser() {
+    const inventoryTable = document.getElementById("userInventoryTable");
+    const choice = document.getElementById("equipmentChoice");
+
+    inventoryTable.innerHTML = "";
+    choice.innerHTML = '<option value="">Select Equipment</option>';
+
+    equipment.forEach(function(item) {
+        if (item.quantity > 0 && item.condition === "Good") {
+            inventoryTable.innerHTML += `
+                <tr>
+                    <td>${escapeHTML(item.name)}</td>
+                    <td>${item.quantity}</td>
+                    <td>${escapeHTML(item.condition)}</td>
+                </tr>`;
+
+            choice.innerHTML += `
+                <option value="${escapeHTML(item.name)}">${escapeHTML(item.name)}</option>`;
+        }
+    });
+
+    renderMyRequests();
+}
+
+document.getElementById("borrowForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    const name = currentUser;
+    const section = document.getElementById("borrowerSection").value.trim();
+    const equipmentName = document.getElementById("equipmentChoice").value;
+    const purpose = document.getElementById("borrowPurpose").value.trim();
+
+    if (!section) {
+        alert("Please enter your Grade & Section or Department.");
+        return;
+    }
+
+    if (!equipmentName) {
+        alert("Please select the equipment you want to borrow.");
+        return;
+    }
+
+    if (!purpose) {
+        alert("Please enter the purpose of borrowing.");
+        return;
+    }
+
+    const item = equipment.find(e => e.name === equipmentName);
+
+    if (!item || item.quantity <= 0 || item.condition !== "Good") {
+        alert("This equipment is not currently available.");
+        renderUser();
+        return;
+    }
+
+    const alreadyRequested = requests.some(r =>
+        r.account === currentUser &&
+        r.equipment === equipmentName &&
+        ["Pending", "Borrowed", "Overdue", "Return Pending Confirmation"].includes(r.status)
+    );
+
+    if (alreadyRequested) {
+        alert("You already have an active request for this equipment.");
+        return;
+    }
+
+    const summary =
+        "BORROWING REQUEST SUMMARY\n\n" +
+        "Borrower: " + name + "\n" +
+        "Grade / Department: " + section + "\n" +
+        "Equipment: " + equipmentName + "\n" +
+        "Purpose: " + purpose + "\n" +
+        "Request Date: " + today() + "\n\n" +
+        "The return deadline will be 3 days after admin approval.\n\n" +
+        "Submit this request?";
+
+    if (!confirm(summary)) return;
+
+    requests.push({
+        account: currentUser,
+        name: name,
+        section: section,
+        equipment: equipmentName,
+        purpose: purpose,
+        requestDate: today(),
+        status: "Pending",
+        acceptedNoticeShown: false,
+        rejectionNoticeShown: false,
+        returnNoticeShown: false
+    });
+
+    saveData();
+    renderUser();
+    document.getElementById("borrowForm").reset();
+    document.getElementById("borrowerName").value = currentUser;
+
+    alert("Your borrowing request has been submitted. Please wait for admin approval.");
+});
+
+function renderMyRequests() {
+    const table = document.getElementById("myRequestsTable");
+    table.innerHTML = "";
+
+    requests.forEach(function(request, index) {
+        if (request.account !== currentUser) return;
+
+        let action = "-";
+
+        if (request.status === "Pending") {
+            action = `<button class="red" onclick="cancelRequest(${index})">Cancel</button>`;
+        }
+
+        if (["Borrowed", "Overdue"].includes(request.status)) {
+            action = `<button class="green" onclick="reportReturn(${index})">I Returned It</button>`;
+        }
+
+        if (request.status === "Return Pending Confirmation") {
+            action = "Waiting for admin";
+        }
+
+        let statusText = request.status;
+
+        if (request.status === "Borrowed") {
+            statusText = "Accepted - Return by " + request.returnDate;
+        }
+
+        if (request.status === "Overdue") {
+            statusText = "Overdue - Due " + request.returnDate;
+        }
+
+        if (request.status === "Return Pending Confirmation") {
+            statusText = "Return reported - waiting for admin";
+        }
+
+        table.innerHTML += `
+            <tr>
+                <td>
+                    ${escapeHTML(request.equipment)}
+                    <br><small>Purpose: ${escapeHTML(request.purpose)}</small>
+                    <br><small>Borrowed: ${escapeHTML(request.borrowDate || "Not approved yet")}</small>
+                </td>
+                <td>${escapeHTML(request.requestDate)}</td>
+                <td>${escapeHTML(request.returnDate || "Not set")}</td>
+                <td>${escapeHTML(request.actualReturnDate || "-")}</td>
+                <td>${escapeHTML(statusText)}</td>
+                <td>${action}</td>
+            </tr>`;
+    });
+}
+
+function reportReturn(index) {
+    const request = requests[index];
+
+    if (!request || request.account !== currentUser) return;
+
+    if (!confirm("Confirm that you have returned this equipment to the school staff?")) {
+        return;
+    }
+
+    request.status = "Return Pending Confirmation";
+    request.userReportedReturnDate = today();
+
+    saveData();
+    renderUser();
+    alert("Return reported. Please hand the equipment to the authorized school staff for inspection.");
+}
+
+function cancelRequest(index) {
+    const request = requests[index];
+
+    if (!request || request.account !== currentUser || request.status !== "Pending") {
+        return;
+    }
+
+    if (!confirm("Cancel this borrowing request?")) return;
+
+    request.status = "Cancelled";
+    saveData();
+    renderUser();
+    alert("Request cancelled successfully.");
+}
+
+function notifyUser() {
+    let changed = false;
+
+    requests.forEach(function(request) {
+        if (request.account !== currentUser) return;
+
+        if (request.status === "Borrowed" && !request.acceptedNoticeShown) {
+            alert(
+                "YOUR REQUEST HAS BEEN ACCEPTED!\n\n" +
+                "Equipment: " + request.equipment + "\n" +
+                "Borrowed Date: " + request.borrowDate + "\n" +
+                "Return Deadline: " + request.returnDate
+            );
+
+            request.acceptedNoticeShown = true;
+            changed = true;
+        } else if (request.status === "Rejected" && !request.rejectionNoticeShown) {
+            alert("Your request for " + request.equipment + " was rejected.");
+            request.rejectionNoticeShown = true;
+            changed = true;
+        } else if (
+            ["Returned", "Damaged", "Lost"].includes(request.status) &&
+            request.returnNoticeShown === false
+        ) {
+            alert(
+                "RETURN RECORD UPDATED\n\n" +
+                "Equipment: " + request.equipment + "\n" +
+                "Final Status: " + request.status + "\n" +
+                "Return Date: " + request.actualReturnDate
+            );
+
+            request.returnNoticeShown = true;
+            changed = true;
+        }
+    });
+
+    if (changed) saveData();
+}
+
+function exportJSON() {
+    const backup = {
+        equipment: equipment,
+        requests: requests,
+        accounts: accounts
+    };
+
+    const blob = new Blob(
+        [JSON.stringify(backup, null, 2)],
+        {type: "application/json"}
+    );
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "UPNHS_Equipment_Backup.json";
+    link.click();
+
+    URL.revokeObjectURL(url);
+    alert("JSON backup downloaded successfully.");
+}
+
+checkOverdue();
+saveData();
+
+window.addEventListener("storage", function(event) {
+    if (event.key === "equipmentData" || event.key === "requestData") {
+        equipment = JSON.parse(localStorage.getItem("equipmentData")) || [];
+        requests = JSON.parse(localStorage.getItem("requestData")) || [];
+
+        checkOverdue();
+
+        if (!document.getElementById("adminPage").classList.contains("hidden")) {
+            renderAdmin();
+        }
+
+        if (!document.getElementById("userPage").classList.contains("hidden")) {
+            renderUser();
+            notifyUser();
+        }
+    }
+});
+</script>
+</body>
+</html>
